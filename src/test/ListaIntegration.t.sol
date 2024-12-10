@@ -11,15 +11,13 @@ import {IListaIntegration} from "../contracts/interfaces/IListaIntegration.sol";
 import {ICollateral} from "../contracts/interfaces/ICollateral.sol";
 import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
 
-
 contract ListaIntegrationTest is Test {
     using stdStorage for StdStorage;
 
     string RPC_URL = vm.envString("MAINNET_RPC_URL"); // MAINNET
     uint256 fork = vm.createFork(RPC_URL, 44606919);
 
-    SimpleStaking public stake_contract;
-    StakeLista public stake_lista_contract;
+    ListaIntegration public stake_lista_contract;
 
     address owner = vm.addr(1);
     address user1 = vm.addr(2);
@@ -41,20 +39,18 @@ contract ListaIntegrationTest is Test {
         vm.selectFork(fork);
 
         vm.startPrank(owner);
-        // Deploy contracts
-        stake_contract = new SimpleStaking();
 
         // set up proxy
         ProxyAdmin proxyAdmin = new ProxyAdmin(address(1));
 
-        // set up lottery impl
-        StakeLista stakeListaImplementation = new StakeLista();
+        // set up stake lista impl
+        ListaIntegration stakeListaImplementation = new ListaIntegration();
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             address(stakeListaImplementation),
             address(proxyAdmin),
             abi.encodeWithSelector(
-                StakeLista(stakeListaImplementation).initialize.selector,
+                ListaIntegration(stakeListaImplementation).initialize.selector,
                 "LRS",
                 "LRS",
                 heliosProvider,
@@ -63,11 +59,9 @@ contract ListaIntegrationTest is Test {
                 5 ether
             )
         );
-        stake_lista_contract = StakeLista(payable(address(proxy)));
+        stake_lista_contract = ListaIntegration(payable(address(proxy)));
         stake_lista_contract.grantRole(stake_lista_contract.ADMIN_ROLE(), owner);
 
-        // Whitelist LRS token
-        stake_contract.whitelistToken(address(stake_lista_contract));
         vm.stopPrank();
 
         // Top up user balances
@@ -75,16 +69,6 @@ contract ListaIntegrationTest is Test {
         vm.deal(user2, 100 ether);
 
         vm.deal(feeReceiver, 0);
-    }
-
-    // [OK] Check setup
-    function testSetup() public {
-        // Check LRS is whitelisted
-        vm.assertTrue(stake_contract.whitelistedTokens(address(stake_lista_contract)));
-        // Check collateral
-        vm.assertEq(IHeliosProvider(heliosProvider)._collateralToken(), collateral);
-        // Check fee receiver balance
-        assertEq(feeReceiver.balance, 0);
     }
 
     // [OK] User stakes BNB
@@ -447,7 +431,7 @@ contract ListaIntegrationTest is Test {
 
         // User1 attempts to claim again, but reverts, because there's nothing to claim after first claim
         vm.prank(user1);
-        vm.expectRevert(IStakeLista.ClaimFailed.selector);
+        vm.expectRevert(IListaIntegration.ClaimFailed.selector);
         stake_lista_contract.claimRewards();
 
         // User2 claims rewards
