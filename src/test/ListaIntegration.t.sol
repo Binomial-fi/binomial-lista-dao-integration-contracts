@@ -6,9 +6,11 @@ import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.s
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {ListaIntegration} from "../contracts/ListaIntegration.sol";
+import {BnWClisBnb} from "../contracts/BnWClisBnb.sol";
 import {IHeliosProvider} from "../contracts/interfaces/IHeliosProvider.sol";
 import {IListaIntegration} from "../contracts/interfaces/IListaIntegration.sol";
 import {ICollateral} from "../contracts/interfaces/ICollateral.sol";
+import {SimpleStaking} from "../contracts/simple-staking/SimpleStaking.sol";
 import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
 
 contract ListaIntegrationTest is Test {
@@ -17,6 +19,8 @@ contract ListaIntegrationTest is Test {
     string RPC_URL = vm.envString("MAINNET_RPC_URL"); // MAINNET
     uint256 fork = vm.createFork(RPC_URL, 44606919);
 
+    SimpleStaking public simpleStaking;
+    BnWClisBnb public bnwClisBnb;
     ListaIntegration public stake_lista_contract;
 
     address owner = vm.addr(1);
@@ -33,12 +37,19 @@ contract ListaIntegrationTest is Test {
     address delegateTo = 0xD57E5321e67607Fab38347D96394e0E58509C506; // heliosProvider.provide(_delegateTo)
     // address slisBnb = ; // testnet
     address slisBnb = 0xB0b84D294e0C75A6abe60171b70edEb2EFd14A1B; // mainnet
+    address slisBnbStrategy = 0x6F28FeC449dbd2056b76ac666350Af8773E03873;
 
     function setUp() public {
         // Select fork
         vm.selectFork(fork);
 
         vm.startPrank(owner);
+
+        // init simple staking
+        simpleStaking = new SimpleStaking();
+
+        // init bnwClisBnb token contract
+        bnwClisBnb = new BnWClisBnb("BnWClisBnb", "BnWClisBnb");
 
         // set up proxy
         ProxyAdmin proxyAdmin = new ProxyAdmin(address(1));
@@ -56,11 +67,17 @@ contract ListaIntegrationTest is Test {
                 heliosProvider,
                 delegateTo,
                 feeReceiver,
-                5 ether
+                5 ether,
+                address(simpleStaking),
+                address(bnwClisBnb)
             )
         );
         stake_lista_contract = ListaIntegration(payable(address(proxy)));
         stake_lista_contract.grantRole(stake_lista_contract.ADMIN_ROLE(), owner);
+
+        bnwClisBnb.grantRole(bnwClisBnb.MINT_BURN_ROLE(), address(stake_lista_contract));
+
+        simpleStaking.whitelistToken(address(bnwClisBnb));
 
         vm.stopPrank();
 
@@ -140,7 +157,7 @@ contract ListaIntegrationTest is Test {
         // stake_lista_contract.unstake(2 ether);
     }
 
-    // [OK] User unstakes lisBnb
+    // [OK] User unstakes slisBnb
     function testUnstakeLiquidBNB() public {
         // User stakes 1 BNB
         vm.prank(user1);
@@ -160,7 +177,7 @@ contract ListaIntegrationTest is Test {
         stake_lista_contract.unstake(2 ether);
 
         // User unstakes 1 BNB
-        stake_lista_contract.unstakeLiquidBnb(1 ether, 0x6F28FeC449dbd2056b76ac666350Af8773E03873);
+        stake_lista_contract.unstakeLiquidBnb(1 ether, slisBnbStrategy);
         assertEq(user1.balance, 98.5 ether);
         // assertEq(IERC20(slisBnb).balanceOf(user1), 977800679150037185); // Check Lista StakeManager.convertBnbToSnBnb()
         assertEq(stake_lista_contract.totalSupply(), 0.5 ether);
@@ -905,5 +922,31 @@ contract ListaIntegrationTest is Test {
         // 50 - 100 => user1 = 100 & user2 = 200
         // 100 - 150 => user1 = 200 & user2 = 200
         // 150 - 200 => user1 = 200 & user2 = 400
+    }
+
+    // [OK] Test BnWClisBnb token
+    function testBnWClisBnb() public {
+        assertTrue(simpleStaking.whitelistedTokens(address(bnwClisBnb)));
+
+        // User stakes
+        vm.prank(user1);
+        stake_lista_contract.stake{value: 10 ether}();
+        assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
+        assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 10 ether);
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 10 ether);
+
+        // User unstakes 50%
+        vm.prank(user1);
+        stake_lista_contract.unstake(5 ether);
+        assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
+        assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 5 ether);
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 5 ether);
+
+        // User unstakes liquid 50%
+        vm.prank(user1);
+        stake_lista_contract.unstakeLiquidBnb(5 ether, slisBnbStrategy);
+        assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
+        assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 0 ether);
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 0 ether);
     }
 }
