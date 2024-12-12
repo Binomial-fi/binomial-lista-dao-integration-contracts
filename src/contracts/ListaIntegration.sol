@@ -5,14 +5,26 @@ import "@openzeppelin-upgradable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin-upgradable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin-upgradable/utils/ReentrancyGuardUpgradeable.sol";
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import {IListaIntegration} from "./interfaces/IListaIntegration.sol";
 import {IHeliosProvider} from "./interfaces/IHeliosProvider.sol";
 import {TransferHelper} from "./libs/TransferHelper.sol";
+import {IBnWClisBnb} from "./interfaces/IBnWClisBnb.sol";
+import {ISimpleStaking} from "./simple-staking/interfaces/ISimpleStaking.sol";
+import {Test, console} from "forge-std/Test.sol";
 
-contract ListaIntegration is IListaIntegration, ERC20Upgradeable, ReentrancyGuardUpgradeable, AccessControlUpgradeable {
+contract ListaIntegration is
+    IListaIntegration,
+    ERC20Upgradeable,
+    ReentrancyGuardUpgradeable,
+    AccessControlUpgradeable
+{
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     address public HELIOS_PROVIDER;
     address public PROVIDE_DELEGATE_TO;
+    address public SIMPLE_STAKING;
+    address public BN_W_CLIS_BNB;
 
     // Rewards related
     address public FEE_RECEIVER;
@@ -30,18 +42,25 @@ contract ListaIntegration is IListaIntegration, ERC20Upgradeable, ReentrancyGuar
     // Distributions
     IListaIntegration.Distribution[] public distributions;
 
+    // BnWClisBnb
+    // BnWClisBnb private bnwClisBnb = BnWClisBnb("BnWClisBnb", "BnWClisBnb");
+
     function initialize(
         string memory _tokenName,
         string memory _tokenSymbol,
         address _heliosProvider,
         address _delegateTo,
         address _feeReceiver,
-        uint256 _feePerc
+        uint256 _feePerc,
+        address _simpleStaking,
+        address _bnWClisBnb
     ) public initializer {
         __ERC20_init(_tokenName, _tokenSymbol);
 
         HELIOS_PROVIDER = _heliosProvider;
         PROVIDE_DELEGATE_TO = _delegateTo;
+        SIMPLE_STAKING = _simpleStaking;
+        BN_W_CLIS_BNB = _bnWClisBnb;
 
         FEE_RECEIVER = _feeReceiver;
         FEE_PERC = _feePerc;
@@ -56,6 +75,7 @@ contract ListaIntegration is IListaIntegration, ERC20Upgradeable, ReentrancyGuar
         distributions.push(initialDistribution);
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        IERC20(BN_W_CLIS_BNB).approve(SIMPLE_STAKING, type(uint256).max);
     }
 
     receive() external payable {}
@@ -69,11 +89,20 @@ contract ListaIntegration is IListaIntegration, ERC20Upgradeable, ReentrancyGuar
 
         userBalances[msg.sender] += msg.value;
 
-        // Mint
+        // Mint LRS to user
         _mint(msg.sender, msg.value);
 
+        // Mint BnWClisBnb and stake it in simple staking
+        IBnWClisBnb(BN_W_CLIS_BNB).mint(address(this), msg.value);
+        ISimpleStaking(SIMPLE_STAKING).stake(BN_W_CLIS_BNB, msg.value);
+
         // Emit event
-        emit IListaIntegration.Stake(msg.sender, msg.value);
+        emit IListaIntegration.Stake(
+            msg.sender,
+            address(0), // Native currency
+            msg.value,
+            block.timestamp
+        );
     }
 
     function unstake(uint256 _amount) public nonReentrant {
@@ -87,6 +116,10 @@ contract ListaIntegration is IListaIntegration, ERC20Upgradeable, ReentrancyGuar
 
         // Burn LRS
         _burn(msg.sender, _amount);
+
+        // Unstake BnWClisBnb and burn it
+        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
+        IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
         emit IListaIntegration.Unstake(msg.sender, _amount, address(0));
     }
@@ -102,6 +135,10 @@ contract ListaIntegration is IListaIntegration, ERC20Upgradeable, ReentrancyGuar
 
         // Burn LRS
         _burn(msg.sender, _amount);
+
+        // Unstake BnWClisBnb and burn it
+        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
+        IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
         emit IListaIntegration.Unstake(msg.sender, _amount, _asset);
     }
