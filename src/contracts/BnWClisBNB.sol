@@ -22,8 +22,4 @@ contract BnWClisBnb is IBnWClisBnb, ERC20, AccessControl, ReentrancyGuard {
     function burn(address _account, uint256 _amount) public onlyRole(MINT_BURN_ROLE) nonReentrant {
         _burn(_account, _amount);
     }
-
-    function decimals() public pure override returns (uint8) {
-        return 8;
-    }
 }

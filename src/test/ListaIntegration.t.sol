@@ -1092,6 +1092,7 @@ contract ListaIntegrationTest is Test {
         assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
         assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 10 ether);
         assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 10 ether);
+        assertEq(stake_lista_contract.balanceOf(user1), 10 ether);
 
         vm.roll(block.number + 100);
 

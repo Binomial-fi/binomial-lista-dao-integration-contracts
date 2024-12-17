@@ -203,10 +203,6 @@ contract ListaIntegration is
         return true;
     }
 
-    function decimals() public pure override returns (uint8) {
-        return 8;
-    }
-
     // ================== A D M I N ================== //
     function createDistribution() public onlyRole(ADMIN_ROLE) {
         // Update current distribution
