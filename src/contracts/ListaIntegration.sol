@@ -179,6 +179,24 @@ contract ListaIntegration is
         userLastDist[_account] = _distIndex;
     }
 
+    function transferFrom(address _from, address _to, uint256 _value) public override returns (bool) {
+        super.transferFrom(_from, _to, _value);
+
+        userBalances[_from] -= _value;
+        userBalances[_to] += _value;
+
+        return true;
+    }
+
+    function transfer(address _to, uint256 _value) public override returns (bool) {
+        super.transfer(_to, _value);
+
+        userBalances[msg.sender] -= _value;
+        userBalances[_to] += _value;
+        
+        return true;
+    }
+
     function decimals() public pure override returns (uint8) {
         return 8;
     }
