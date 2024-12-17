@@ -180,14 +180,20 @@ contract ListaIntegration is
     }
 
     function transferFrom(address _from, address _to, uint256 _value) public override returns (bool) {
-        userBalances[_from] -= _value;
         super.transferFrom(_from, _to, _value);
+
+        userBalances[_from] -= _value;
+        userBalances[_to] += _value;
+
         return true;
     }
 
     function transfer(address _to, uint256 _value) public override returns (bool) {
-        userBalances[msg.sender] -= _value;
         super.transfer(_to, _value);
+
+        userBalances[msg.sender] -= _value;
+        userBalances[_to] += _value;
+        
         return true;
     }
 
