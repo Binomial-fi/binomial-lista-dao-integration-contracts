@@ -187,6 +187,8 @@ contract ListaIntegration is
 
         userBalances[_from] -= _value;
         userBalances[_to] += _value;
+        _updateUserRatio(_from);
+        _updateUserRatio(_to);
 
         return true;
     }
@@ -197,6 +199,8 @@ contract ListaIntegration is
 
         commitUser(msg.sender, distributions.length - 1);
         commitUser(_to, distributions.length - 1);
+        _updateUserRatio(msg.sender);
+        _updateUserRatio(_to);
 
         super.transfer(_to, _value);
 
@@ -266,9 +270,19 @@ contract ListaIntegration is
             (block.number - targetDist.lastInteraction) * totalSupply() + targetDist.capitalLastRatio;
         targetDist.lastInteraction = block.number;
 
+        _updateUserRatio(msg.sender);
+    }
+
+    function _updateUserRatio(address _account) internal {
+        uint256 distributionsLength = distributions.length - 1;
+
         // Update user's stake
-        userRatio[distributionsLength][msg.sender] = (block.number - userLastInteraction[msg.sender])
-            * userBalances[msg.sender] + userRatio[distributionsLength][msg.sender];
-        userLastInteraction[msg.sender] = block.number;
+        if(userLastInteraction[_account] == 0) {
+            userLastInteraction[_account] = distributions[distributionsLength].start;
+        }
+        
+        userRatio[distributionsLength][_account] = (block.number - userLastInteraction[_account])
+            * userBalances[_account] + userRatio[distributionsLength][_account];
+        userLastInteraction[_account] = block.number;
     }
 }
