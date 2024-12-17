@@ -35,7 +35,6 @@ contract ListaIntegration is
     // Users
     mapping(uint256 => mapping(address => uint256)) public userRatio;
     mapping(address => uint256) public userRewards;
-    mapping(address => uint256) public userBalances;
     mapping(address => uint256) public userLastDist;
     mapping(address => uint256) public userLastInteraction;
 
@@ -82,12 +81,10 @@ contract ListaIntegration is
 
     function stake() public payable nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
-        _updateCurrentRatio();
+        _updateCurrentRatio(msg.sender);
 
         // Provide to HeliosProviderV2
         IHeliosProvider(HELIOS_PROVIDER).provide{value: msg.value}(PROVIDE_DELEGATE_TO);
-
-        userBalances[msg.sender] += msg.value;
 
         // Mint LRS to user
         _mint(msg.sender, msg.value);
@@ -107,12 +104,10 @@ contract ListaIntegration is
 
     function unstake(uint256 _amount) public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
-        _updateCurrentRatio();
+        _updateCurrentRatio(msg.sender);
 
         // Release from HeliosProviderV2
         IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
-
-        userBalances[msg.sender] -= _amount;
 
         // Burn LRS
         _burn(msg.sender, _amount);
@@ -126,12 +121,10 @@ contract ListaIntegration is
 
     function unstakeLiquidBnb(uint256 _amount, address _asset) public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
-        _updateCurrentRatio();
+        _updateCurrentRatio(msg.sender);
 
         // Release from HeliosProviderV2
         IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
-
-        userBalances[msg.sender] -= _amount;
 
         // Burn LRS
         _burn(msg.sender, _amount);
@@ -147,11 +140,7 @@ contract ListaIntegration is
     function claimRewards() public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
         uint256 rewardsToClaim = userRewards[msg.sender];
-        console.log("rewards for user are: ", rewardsToClaim);
         if (rewardsToClaim == 0) revert IListaIntegration.ClaimFailed();
-
-        console.log("rewards to claim", rewardsToClaim);
-        console.log("total rewards", totalRewards);
 
         totalRewards -= rewardsToClaim;
         userRewards[msg.sender] = 0;
@@ -170,7 +159,7 @@ contract ListaIntegration is
         for (uint256 distIndex = userLastDist[_account]; distIndex < _distIndex;) {
             IListaIntegration.Distribution storage targetDist = distributions[distIndex];
 
-            userRatio[distIndex][_account] = (targetDist.end - userLastInteraction[_account]) * userBalances[_account]
+            userRatio[distIndex][_account] = (targetDist.end - userLastInteraction[_account]) * super.balanceOf(_account)
                 + userRatio[distIndex][_account];
             userLastInteraction[_account] = targetDist.end;
             userRewards[_account] += (userRatio[distIndex][_account] * targetDist.rewards) / targetDist.capitalLastRatio;
@@ -183,27 +172,24 @@ contract ListaIntegration is
     }
 
     function transferFrom(address _from, address _to, uint256 _value) public override returns (bool) {
-        super.transferFrom(_from, _to, _value);
+        commitUser(_from, distributions.length - 1);
+        _updateCurrentRatio(_from);
 
-        userBalances[_from] -= _value;
-        userBalances[_to] += _value;
-        _updateUserRatio(_from);
-        _updateUserRatio(_to);
-
+        commitUser(_to, distributions.length - 1);
+        _updateCurrentRatio(_to);
+        
+        super.transfer(_to, _value);
         return true;
     }
 
     function transfer(address _to, uint256 _value) public override returns (bool) {
-        userBalances[msg.sender] -= _value;
-        userBalances[_to] += _value;
-
-        commitUser(msg.sender, distributions.length - 1);
         commitUser(_to, distributions.length - 1);
-        _updateUserRatio(msg.sender);
-        _updateUserRatio(_to);
-
+        _updateCurrentRatio(_to);
+        
+        commitUser(msg.sender, distributions.length - 1);
+        _updateCurrentRatio(msg.sender);
+        
         super.transfer(_to, _value);
-
         return true;
     }
 
@@ -261,7 +247,7 @@ contract ListaIntegration is
     }
 
     // ================== I N T E R N A L ================== //
-    function _updateCurrentRatio() internal {
+    function _updateCurrentRatio(address _account) internal {
         uint256 distributionsLength = distributions.length - 1;
 
         // Update capital ratio
@@ -270,19 +256,8 @@ contract ListaIntegration is
             (block.number - targetDist.lastInteraction) * totalSupply() + targetDist.capitalLastRatio;
         targetDist.lastInteraction = block.number;
 
-        _updateUserRatio(msg.sender);
-    }
-
-    function _updateUserRatio(address _account) internal {
-        uint256 distributionsLength = distributions.length - 1;
-
-        // Update user's stake
-        if(userLastInteraction[_account] == 0) {
-            userLastInteraction[_account] = distributions[distributionsLength].start;
-        }
-        
-        userRatio[distributionsLength][_account] = (block.number - userLastInteraction[_account])
-            * userBalances[_account] + userRatio[distributionsLength][_account];
+       userRatio[distributionsLength][_account] = (block.number - userLastInteraction[_account])
+            * super.balanceOf(_account) + userRatio[distributionsLength][_account];
         userLastInteraction[_account] = block.number;
     }
 }

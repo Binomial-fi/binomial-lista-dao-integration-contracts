@@ -140,7 +140,7 @@ contract ListaIntegrationTest is Test {
         stake_lista_contract.unstake(1 ether);
 
         assertEq(user1.balance, 99.5 ether);
-        assertEq(stake_lista_contract.userBalances(user1), 0.5 ether);
+        assertEq(stake_lista_contract.balanceOf(user1), 0.5 ether);
         assertEq(stake_lista_contract.totalSupply(), 0.5 ether);
         assertEq(stake_lista_contract.balanceOf(user1), 0.5 ether);
         vm.stopPrank();
@@ -238,11 +238,6 @@ contract ListaIntegrationTest is Test {
         assertEq(start1, startBlock);
         assertEq(end1, startBlock + 100);
         assertEq(rewards1, 19 ether);
-
-        // vm.prank(user1);
-        // uint256 userBalance = user1.balance;
-        // stake_lista_contract.claimRewards();
-        // assertEq(user1.balance, userBalance + 10 ether);
     }
 
     // [OK] Test multiple distributions
@@ -827,22 +822,8 @@ contract ListaIntegrationTest is Test {
 
         console.log(
             "User 2 stakes is: ",
-            stake_lista_contract.userBalances(user2) / 1e18
+            stake_lista_contract.balanceOf(user2) / 1e18
         );
-
-        // // User2 stakes
-        // vm.prank(user2);
-        // stake_lista_contract.stake{value: 200 ether}();
-        // vm.roll(lastBlockNumber + 150000); // -----------------------> ROLL to 100%
-        // lastBlockNumber += 150000;
-
-        // // End distribution3 and start distribution4
-        // vm.prank(owner);
-        // stake_lista_contract.createDistribution();
-
-        // // ------------------- BATCH SYNC ------------------- //
-        // vm.prank(user1);
-        // stake_lista_contract.batchSyncRewards(user1, 5);
     }
 
     function test_multipleEpochsRewards() public {
