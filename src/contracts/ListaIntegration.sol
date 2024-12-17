@@ -146,9 +146,12 @@ contract ListaIntegration is
     // Claim rewards
     function claimRewards() public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
-
         uint256 rewardsToClaim = userRewards[msg.sender];
+        console.log("rewards for user are: ", rewardsToClaim);
         if (rewardsToClaim == 0) revert IListaIntegration.ClaimFailed();
+
+        console.log("rewards to claim", rewardsToClaim);
+        console.log("total rewards", totalRewards);
 
         totalRewards -= rewardsToClaim;
         userRewards[msg.sender] = 0;
@@ -189,11 +192,14 @@ contract ListaIntegration is
     }
 
     function transfer(address _to, uint256 _value) public override returns (bool) {
-        super.transfer(_to, _value);
-
         userBalances[msg.sender] -= _value;
         userBalances[_to] += _value;
-        
+
+        commitUser(msg.sender, distributions.length - 1);
+        commitUser(_to, distributions.length - 1);
+
+        super.transfer(_to, _value);
+
         return true;
     }
 
