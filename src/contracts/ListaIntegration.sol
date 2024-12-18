@@ -66,7 +66,10 @@ contract ListaIntegration is
         BN_W_CLIS_BNB = _wnomBnb;
 
         FEE_RECEIVER = _feeReceiver;
+        emit FeeReceiverChanged(address(0), FEE_RECEIVER);
+
         FEE_PERC = _feePerc;
+        emit FeePercentageChanged(0, FEE_PERC);
 
         IListaIntegration.Distribution memory initialDistribution = IListaIntegration.Distribution({
             start: block.number,
