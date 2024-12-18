@@ -98,9 +98,8 @@ contract ListaIntegrationTest is Test {
         assertEq(stake_lista_contract.balanceOf(user1), 1.5 ether);
 
         // Check delegation amount in HeliosProvider
-        IHeliosProvider.Delegation memory delegationItem = IHeliosProvider(
-            heliosProvider
-        )._delegation(address(stake_lista_contract));
+        IHeliosProvider.Delegation memory delegationItem =
+            IHeliosProvider(heliosProvider)._delegation(address(stake_lista_contract));
         assertEq(delegationItem.amount, 1.5 ether);
 
         // User 2 stakes
@@ -113,9 +112,7 @@ contract ListaIntegrationTest is Test {
         // assertEq(ICollateral(collateral).balanceOf(delegateTo), 2 ether); // this test works only on testnet
 
         // Check delegation amount in HeliosProvider
-        delegationItem = IHeliosProvider(heliosProvider)._delegation(
-            address(stake_lista_contract)
-        );
+        delegationItem = IHeliosProvider(heliosProvider)._delegation(address(stake_lista_contract));
         assertEq(delegationItem.amount, 2 ether);
     }
 
@@ -126,9 +123,8 @@ contract ListaIntegrationTest is Test {
         stake_lista_contract.stake{value: 1.5 ether}();
 
         // Check delegation amount in HeliosProvider
-        IHeliosProvider.Delegation memory delegationItem = IHeliosProvider(
-            heliosProvider
-        )._delegation(address(stake_lista_contract));
+        IHeliosProvider.Delegation memory delegationItem =
+            IHeliosProvider(heliosProvider)._delegation(address(stake_lista_contract));
         assertEq(delegationItem.amount, 1.5 ether);
 
         // User attempts to unstake more than staked amount
@@ -146,9 +142,7 @@ contract ListaIntegrationTest is Test {
         vm.stopPrank();
 
         // Check delegation amount in HeliosProvider
-        delegationItem = IHeliosProvider(heliosProvider)._delegation(
-            address(stake_lista_contract)
-        );
+        delegationItem = IHeliosProvider(heliosProvider)._delegation(address(stake_lista_contract));
         assertEq(delegationItem.amount, 0.5 ether);
 
         // //  Manipulate user1's stakeAmount via store
@@ -173,9 +167,8 @@ contract ListaIntegrationTest is Test {
         assertEq(stake_lista_contract.balanceOf(user1), 1.5 ether);
 
         // Check delegation amount in HeliosProvider
-        IHeliosProvider.Delegation memory delegationItem = IHeliosProvider(
-            heliosProvider
-        )._delegation(address(stake_lista_contract));
+        IHeliosProvider.Delegation memory delegationItem =
+            IHeliosProvider(heliosProvider)._delegation(address(stake_lista_contract));
         assertEq(delegationItem.amount, 1.5 ether);
 
         // User attempts to unstake more than staked amount
@@ -192,9 +185,7 @@ contract ListaIntegrationTest is Test {
         vm.stopPrank();
 
         // Check delegation amount in HeliosProvider
-        delegationItem = IHeliosProvider(heliosProvider)._delegation(
-            address(stake_lista_contract)
-        );
+        delegationItem = IHeliosProvider(heliosProvider)._delegation(address(stake_lista_contract));
         assertEq(delegationItem.amount, 0.5 ether);
     }
 
@@ -206,21 +197,16 @@ contract ListaIntegrationTest is Test {
 
         // Distribute rewards -- Round 1
         vm.prank(rewardsDistributor);
-        (bool success0, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success0,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success0) revert("Transfer to receive() failed");
 
-        (uint256 start, , uint256 rewards, , ) = stake_lista_contract
-            .distributions(0);
+        (uint256 start,, uint256 rewards,,) = stake_lista_contract.distributions(0);
         assertEq(start, block.number);
         assertEq(rewards, 0);
 
         // Distribute rewards -- Round 2
         vm.prank(rewardsDistributor);
-        (bool success1, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success1,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success1) revert("Transfer to receive() failed");
 
         vm.roll(startBlock + 100);
@@ -228,13 +214,7 @@ contract ListaIntegrationTest is Test {
         vm.prank(owner);
         stake_lista_contract.createDistribution();
 
-        (
-            uint256 start1,
-            uint256 end1,
-            uint256 rewards1,
-            ,
-
-        ) = stake_lista_contract.distributions(0);
+        (uint256 start1, uint256 end1, uint256 rewards1,,) = stake_lista_contract.distributions(0);
         assertEq(start1, startBlock);
         assertEq(end1, startBlock + 100);
         assertEq(rewards1, 19 ether);
@@ -246,13 +226,10 @@ contract ListaIntegrationTest is Test {
 
         // Distribute rewards
         vm.prank(rewardsDistributor);
-        (bool success0, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success0,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success0) revert("Transfer to receive() failed");
 
-        (uint256 start0, , uint256 rewards0, , ) = stake_lista_contract
-            .distributions(0);
+        (uint256 start0,, uint256 rewards0,,) = stake_lista_contract.distributions(0);
         assertEq(start0, block.number);
         assertEq(rewards0, 0);
 
@@ -266,13 +243,7 @@ contract ListaIntegrationTest is Test {
         // Finish distribution0 and create distribution1
         vm.prank(owner);
         stake_lista_contract.createDistribution();
-        (
-            uint256 start01,
-            uint256 end01,
-            uint256 rewards01,
-            ,
-
-        ) = stake_lista_contract.distributions(0);
+        (uint256 start01, uint256 end01, uint256 rewards01,,) = stake_lista_contract.distributions(0);
 
         // Set new platform fee == 10%
         vm.prank(owner);
@@ -284,13 +255,7 @@ contract ListaIntegrationTest is Test {
         assertEq(end01, endOfDistribution1);
         assertEq(rewards01, 9.5 ether);
 
-        (
-            uint256 start1,
-            uint256 end1,
-            uint256 rewards1,
-            ,
-
-        ) = stake_lista_contract.distributions(1);
+        (uint256 start1, uint256 end1, uint256 rewards1,,) = stake_lista_contract.distributions(1);
 
         // Check new distribution1
         assertEq(start1, endOfDistribution1);
@@ -299,18 +264,10 @@ contract ListaIntegrationTest is Test {
 
         // Distribute awards for distribution1
         vm.prank(rewardsDistributor);
-        (bool success1, ) = address(stake_lista_contract).call{value: 25 ether}(
-            ""
-        );
+        (bool success1,) = address(stake_lista_contract).call{value: 25 ether}("");
         if (!success1) revert("Transfer to receive() failed");
 
-        (
-            uint256 start11,
-            uint256 end11,
-            uint256 rewards11,
-            ,
-
-        ) = stake_lista_contract.distributions(1);
+        (uint256 start11, uint256 end11, uint256 rewards11,,) = stake_lista_contract.distributions(1);
 
         // Check finalised distribution0
         assertEq(start01, startOfDistribution1);
@@ -329,9 +286,7 @@ contract ListaIntegrationTest is Test {
         vm.deal(user2, 1000 ether);
         vm.deal(rewardsDistributor, 1000 ether);
         vm.prank(rewardsDistributor);
-        (bool success0, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success0,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success0) revert("Transfer to receive() failed");
 
         vm.prank(owner);
@@ -358,9 +313,7 @@ contract ListaIntegrationTest is Test {
         stake_lista_contract.createDistribution();
 
         vm.prank(rewardsDistributor);
-        (bool success1, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success1,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success1) revert("Transfer to receive() failed");
 
         vm.roll(firstInteractionBlockNumber + 2000);
@@ -390,9 +343,7 @@ contract ListaIntegrationTest is Test {
 
         // Distribute rewards
         vm.prank(rewardsDistributor);
-        (bool success0, ) = address(stake_lista_contract).call{value: 1 ether}(
-            ""
-        );
+        (bool success0,) = address(stake_lista_contract).call{value: 1 ether}("");
         if (!success0) revert("Transfer to receive() failed");
 
         // Skip forward 100 blocks
@@ -408,9 +359,7 @@ contract ListaIntegrationTest is Test {
 
         // Distribute awards for distribution1
         vm.prank(rewardsDistributor);
-        (bool success1, ) = address(stake_lista_contract).call{value: 2 ether}(
-            ""
-        );
+        (bool success1,) = address(stake_lista_contract).call{value: 2 ether}("");
         if (!success1) revert("Transfer to receive() failed");
 
         // Finish distribution1 and create distribution2
@@ -424,9 +373,7 @@ contract ListaIntegrationTest is Test {
 
         // Distribute awards for distribution1
         vm.prank(rewardsDistributor);
-        (bool success2, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success2,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success2) revert("Transfer to receive() failed");
 
         // Claim fees for distribution 0 & 1
@@ -442,9 +389,7 @@ contract ListaIntegrationTest is Test {
         vm.deal(user2, 1000 ether);
         vm.deal(rewardsDistributor, 1000 ether);
         vm.prank(rewardsDistributor);
-        (bool success0, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success0,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success0) revert("Transfer to receive() failed");
 
         uint256 firstInteractionBlockNumber = block.number;
@@ -456,16 +401,11 @@ contract ListaIntegrationTest is Test {
         uint256 ratio = stake_lista_contract.userRatio(0, user1);
 
         // User1 checks
-        assertEq(
-            stake_lista_contract.userLastInteraction(user1),
-            firstInteractionBlockNumber
-        );
+        assertEq(stake_lista_contract.userLastInteraction(user1), firstInteractionBlockNumber);
         assertEq(ratio, 0);
 
         // Distribution1 checks
-        (, , , , uint256 lastInteraction0) = stake_lista_contract.distributions(
-            0
-        );
+        (,,,, uint256 lastInteraction0) = stake_lista_contract.distributions(0);
         assertEq(lastInteraction0, firstInteractionBlockNumber);
 
         vm.roll(firstInteractionBlockNumber + 15); // -----------------------> ROLL to 15%
@@ -477,8 +417,7 @@ contract ListaIntegrationTest is Test {
         vm.stopPrank();
 
         uint256 user2Rewards = stake_lista_contract.userRewards(user2);
-        (, , , , uint256 lastInteraction01) = stake_lista_contract
-            .distributions(0);
+        (,,,, uint256 lastInteraction01) = stake_lista_contract.distributions(0);
 
         // Distribution1 checks
         assertEq(lastInteraction01, firstInteractionBlockNumber + 15);
@@ -520,9 +459,7 @@ contract ListaIntegrationTest is Test {
         vm.deal(user2, 1000 ether);
         vm.deal(rewardsDistributor, 1000 ether);
         vm.prank(rewardsDistributor);
-        (bool success0, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success0,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success0) revert("Transfer to receive() failed");
 
         vm.prank(owner);
@@ -571,9 +508,7 @@ contract ListaIntegrationTest is Test {
         vm.deal(user2, 1000 ether);
         vm.deal(rewardsDistributor, 1000 ether);
         vm.prank(rewardsDistributor);
-        (bool success0, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success0,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success0) revert("Transfer to receive() failed");
 
         uint256 firstInteractionBlockNumber = block.number;
@@ -584,10 +519,7 @@ contract ListaIntegrationTest is Test {
         uint256 user1Ratio = stake_lista_contract.userRatio(0, user1);
 
         // User1 checks
-        assertEq(
-            stake_lista_contract.userLastInteraction(user1),
-            firstInteractionBlockNumber
-        );
+        assertEq(stake_lista_contract.userLastInteraction(user1), firstInteractionBlockNumber);
         assertEq(user1Ratio, 0);
 
         vm.roll(firstInteractionBlockNumber + 50); // -----------------------> ROLL to 50%
@@ -624,9 +556,7 @@ contract ListaIntegrationTest is Test {
         // ------------------------ D I S T 1 ------------------------
         // Distribute awards for dist1
         vm.prank(rewardsDistributor);
-        (bool success1, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success1,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success1) revert("Transfer to receive() failed");
 
         vm.roll(block.number + 100);
@@ -638,9 +568,7 @@ contract ListaIntegrationTest is Test {
         // ------------------------ D I S T 2 ------------------------
         // Distribute awards for dist2
         vm.prank(rewardsDistributor);
-        (bool success2, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success2,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success2) revert("Transfer to receive() failed");
 
         vm.roll(block.number + 100);
@@ -652,9 +580,7 @@ contract ListaIntegrationTest is Test {
         // ------------------------ D I S T 3 ------------------------
         // Distribute awards for dist3
         vm.prank(rewardsDistributor);
-        (bool success3, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success3,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success3) revert("Transfer to receive() failed");
 
         vm.roll(block.number + 100);
@@ -666,10 +592,7 @@ contract ListaIntegrationTest is Test {
         // ------------------------ User1 claims Dist 1 & 2 & 3------------------------ //
         console.log("USER 1 CLAIM DIST 1, 2, 3");
         assertEq(stake_lista_contract.userLastDist(user1), 1);
-        assertEq(
-            stake_lista_contract.userLastInteraction(user1),
-            block.number - 300
-        );
+        assertEq(stake_lista_contract.userLastInteraction(user1), block.number - 300);
         vm.prank(user1);
         stake_lista_contract.claimRewards(); // should claim 33.3333% of 28.5 eth == 9.5 eth
         user1Balance += 9.5 ether;
@@ -680,10 +603,7 @@ contract ListaIntegrationTest is Test {
         // ------------------------ User2 claims Dist 1 & 2 & 3 ------------------------ //
         console.log("USER 2 CLAIM DIST 1, 2, 3");
         assertEq(stake_lista_contract.userLastDist(user2), 1);
-        assertEq(
-            stake_lista_contract.userLastInteraction(user2),
-            block.number - 300
-        );
+        assertEq(stake_lista_contract.userLastInteraction(user2), block.number - 300);
         vm.prank(user2);
         stake_lista_contract.claimRewards(); // should claim 66.6666% of 28.5 eth == 19 eth
         user2Balance += 19 ether;
@@ -703,9 +623,7 @@ contract ListaIntegrationTest is Test {
         vm.deal(user2, 1000 ether);
         vm.deal(rewardsDistributor, 1000 ether);
         vm.prank(rewardsDistributor);
-        (bool success0, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success0,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success0) revert("Transfer to receive() failed");
 
         uint256 firstInteractionBlockNumber = block.number;
@@ -774,9 +692,7 @@ contract ListaIntegrationTest is Test {
         vm.deal(user2, 1000 ether);
         vm.deal(rewardsDistributor, 1000 ether);
         vm.prank(rewardsDistributor);
-        (bool success0, ) = address(stake_lista_contract).call{value: 10 ether}(
-            ""
-        );
+        (bool success0,) = address(stake_lista_contract).call{value: 10 ether}("");
         if (!success0) revert("Transfer to receive() failed");
 
         uint256 firstInteractionBlockNumber = block.number;
@@ -820,10 +736,7 @@ contract ListaIntegrationTest is Test {
         vm.roll(lastBlockNumber + 150000); // -----------------------> ROLL to 50%
         lastBlockNumber += 150000;
 
-        console.log(
-            "User 2 stakes is: ",
-            stake_lista_contract.balanceOf(user2) / 1e18
-        );
+        console.log("User 2 stakes is: ", stake_lista_contract.balanceOf(user2) / 1e18);
     }
 
     function test_multipleEpochsRewards() public {
@@ -835,11 +748,7 @@ contract ListaIntegrationTest is Test {
         // user 1 deposits 100 ether
         vm.startPrank(user1);
         stake_lista_contract.stake{value: 100 ether}();
-        assertEq(
-            stake_lista_contract.balanceOf(user1),
-            100 ether,
-            "balance of user1 is not correct"
-        );
+        assertEq(stake_lista_contract.balanceOf(user1), 100 ether, "balance of user1 is not correct");
 
         // move 50 blocks
         vm.roll(block.number + 50);
@@ -847,11 +756,7 @@ contract ListaIntegrationTest is Test {
         // user 2 deposits 50 ethers
         vm.startPrank(user2);
         stake_lista_contract.stake{value: 50 ether}();
-        assertEq(
-            stake_lista_contract.balanceOf(user2),
-            50 ether,
-            "balance of user2 is not correct"
-        );
+        assertEq(stake_lista_contract.balanceOf(user2), 50 ether, "balance of user2 is not correct");
 
         // move another 50 blocks
         vm.roll(block.number + 50);
@@ -864,7 +769,7 @@ contract ListaIntegrationTest is Test {
         vm.startPrank(owner);
         stake_lista_contract.createDistribution();
 
-        (, , uint256 rewards, , ) = stake_lista_contract.distributions(0);
+        (,, uint256 rewards,,) = stake_lista_contract.distributions(0);
         assertEq(rewards, 9.5 ether, "rewards are not ok");
 
         // check user balance before claim, claim and check balance again
@@ -937,11 +842,7 @@ contract ListaIntegrationTest is Test {
         // user 1 deposits 100 ether
         vm.startPrank(user1);
         stake_lista_contract.stake{value: 100 ether}();
-        assertEq(
-            stake_lista_contract.balanceOf(user1),
-            100 ether,
-            "balance of user1 is not correct"
-        );
+        assertEq(stake_lista_contract.balanceOf(user1), 100 ether, "balance of user1 is not correct");
 
         // move 50 blocks
         vm.roll(block.number + 50);
@@ -949,11 +850,7 @@ contract ListaIntegrationTest is Test {
         // user 2 deposits 100 ether
         vm.startPrank(user2);
         stake_lista_contract.stake{value: 200 ether}();
-        assertEq(
-            stake_lista_contract.balanceOf(user2),
-            200 ether,
-            "balance of user2 is not correct"
-        );
+        assertEq(stake_lista_contract.balanceOf(user2), 200 ether, "balance of user2 is not correct");
 
         // move 50 blocks
         vm.roll(block.number + 50);
@@ -972,11 +869,7 @@ contract ListaIntegrationTest is Test {
         vm.startPrank(user1);
         stake_lista_contract.stake{value: 50 ether}();
         stake_lista_contract.stake{value: 50 ether}();
-        assertEq(
-            stake_lista_contract.balanceOf(user1),
-            200 ether,
-            "balance of user1 is not correct"
-        );
+        assertEq(stake_lista_contract.balanceOf(user1), 200 ether, "balance of user1 is not correct");
 
         // move 50 blocks
         vm.roll(block.number + 50);
@@ -984,11 +877,7 @@ contract ListaIntegrationTest is Test {
         // user 2 deposits 200 ether
         vm.startPrank(user2);
         stake_lista_contract.stake{value: 200 ether}();
-        assertEq(
-            stake_lista_contract.balanceOf(user2),
-            400 ether,
-            "balance of user2 is not correct"
-        );
+        assertEq(stake_lista_contract.balanceOf(user2), 400 ether, "balance of user2 is not correct");
 
         // move 50 blocks
         vm.roll(block.number + 50);
@@ -1025,39 +914,21 @@ contract ListaIntegrationTest is Test {
         stake_lista_contract.stake{value: 10 ether}();
         assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
         assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 10 ether);
-        assertEq(
-            simpleStaking.stakes(
-                address(stake_lista_contract),
-                address(bnwClisBnb)
-            ),
-            10 ether
-        );
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 10 ether);
 
         // User unstakes 50%
         vm.prank(user1);
         stake_lista_contract.unstake(5 ether);
         assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
         assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 5 ether);
-        assertEq(
-            simpleStaking.stakes(
-                address(stake_lista_contract),
-                address(bnwClisBnb)
-            ),
-            5 ether
-        );
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 5 ether);
 
         // User unstakes liquid 50%
         vm.prank(user1);
         stake_lista_contract.unstakeLiquidBnb(5 ether, slisBnbStrategy);
         assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
         assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 0 ether);
-        assertEq(
-            simpleStaking.stakes(
-                address(stake_lista_contract),
-                address(bnwClisBnb)
-            ),
-            0 ether
-        );
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 0 ether);
     }
 
     // [OK] Test transferring LRS token

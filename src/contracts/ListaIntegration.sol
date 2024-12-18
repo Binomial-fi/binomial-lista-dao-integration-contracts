@@ -115,7 +115,7 @@ contract ListaIntegration is
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
         IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, _amount, address(0));
+        emit IListaIntegration.Unstake(msg.sender, _amount, address(0), block.timestamp);
     }
 
     function unstakeLiquidBnb(uint256 _amount, address _asset) public nonReentrant {
@@ -132,7 +132,7 @@ contract ListaIntegration is
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
         IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, _amount, _asset);
+        emit IListaIntegration.Unstake(msg.sender, _amount, _asset, block.timestamp);
     }
 
     // Claim rewards
@@ -158,8 +158,8 @@ contract ListaIntegration is
         for (uint256 distIndex = userLastDist[_account]; distIndex < _distIndex;) {
             IListaIntegration.Distribution storage targetDist = distributions[distIndex];
 
-            userRatio[distIndex][_account] = (targetDist.end - userLastInteraction[_account]) * super.balanceOf(_account)
-                + userRatio[distIndex][_account];
+            userRatio[distIndex][_account] = (targetDist.end - userLastInteraction[_account])
+                * super.balanceOf(_account) + userRatio[distIndex][_account];
             userLastInteraction[_account] = targetDist.end;
             userRewards[_account] += (userRatio[distIndex][_account] * targetDist.rewards) / targetDist.capitalLastRatio;
             unchecked {
@@ -176,7 +176,7 @@ contract ListaIntegration is
 
         commitUser(_to, distributions.length - 1);
         _updateCurrentRatio(_to);
-        
+
         super.transfer(_to, _value);
         return true;
     }
@@ -184,10 +184,10 @@ contract ListaIntegration is
     function transfer(address _to, uint256 _value) public override returns (bool) {
         commitUser(_to, distributions.length - 1);
         _updateCurrentRatio(_to);
-        
+
         commitUser(msg.sender, distributions.length - 1);
         _updateCurrentRatio(msg.sender);
-        
+
         super.transfer(_to, _value);
         return true;
     }
@@ -255,7 +255,7 @@ contract ListaIntegration is
             (block.number - targetDist.lastInteraction) * totalSupply() + targetDist.capitalLastRatio;
         targetDist.lastInteraction = block.number;
 
-       userRatio[distributionsLength][_account] = (block.number - userLastInteraction[_account])
+        userRatio[distributionsLength][_account] = (block.number - userLastInteraction[_account])
             * super.balanceOf(_account) + userRatio[distributionsLength][_account];
         userLastInteraction[_account] = block.number;
     }

@@ -6,8 +6,8 @@ interface IListaIntegration {
     error InvalidPercentage();
     error ProvidedIndexNotCorrect();
 
-    event Stake(address _sender, address _token, uint256 _amount, uint256 _blockTimestamp);
-    event Unstake(address _sender, uint256 _amount, address _token);
+    event Stake(address indexed staker, address indexed token, uint256 amount, uint256 timestamp);
+    event Unstake(address indexed staker, address indexed token, uint256 amount, uint256 timestamp);
     event ClaimedAdminFees(address _receiver, uint256 _amount);
     event ClaimedRewards(address _account, uint256 _rewards, uint256 _distIndex);
     event NewDistribution(uint256 _distributionId, uint256 _startBlock);
