@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin-upgradable/access/AccessControlUpgradeable.sol";
 
 import {ListaIntegration} from "../src/contracts/ListaIntegration.sol";
-import {BnWClisBnb} from "../src/contracts/BnWClisBnb.sol";
+import {WNomBnb} from "../src/contracts/WNomBnb.sol";
 
 import {IListaIntegration} from "../src/contracts/interfaces/IListaIntegration.sol";
 
@@ -19,7 +19,7 @@ contract ListaIntegrationDeployScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        BnWClisBnb bnwClisBnb = new BnWClisBnb("wnomBNB", "wnomBNB");
+        WNomBnb wnomBnb = new WNomBnb("wnomBNB", "wnomBNB");
         ProxyAdmin proxyAdmin = new ProxyAdmin(owner);
         ListaIntegration stakeListaImplementation = new ListaIntegration();
 
@@ -35,12 +35,12 @@ contract ListaIntegrationDeployScript is Script {
                 owner, // fee receiver
                 5000000000000000000, // 5% fee
                 0x90D121a349616674Ab0933fcF435F06580111e30, // simple staking
-                address(bnwClisBnb) // bnwclisbnb
+                address(wnomBnb) // wnomBnb
             )
         );
 
         AccessControlUpgradeable(address(proxy)).grantRole(IListaIntegration(address(proxy)).ADMIN_ROLE(), owner);
-        bnwClisBnb.grantRole(bnwClisBnb.MINT_BURN_ROLE(), address(proxy));
+        wnomBnb.grantRole(wnomBnb.MINT_BURN_ROLE(), address(proxy));
 
         vm.stopBroadcast();
     }

@@ -5,10 +5,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {IBnWClisBnb} from "./interfaces/IBnWClisBnb.sol";
+import {IWNomBnb} from "./interfaces/IWNomBnb.sol";
 import {TransferHelper} from "./libs/TransferHelper.sol";
 
-contract BnWClisBnb is IBnWClisBnb, ERC20, AccessControl, ReentrancyGuard {
+contract WNomBnb is IWNomBnb, ERC20, AccessControl, ReentrancyGuard {
     bytes32 public constant MINT_BURN_ROLE = keccak256("MINT_BURN_ROLE");
 
     constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) {

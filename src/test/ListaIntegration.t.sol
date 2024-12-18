@@ -6,7 +6,7 @@ import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.s
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {ListaIntegration} from "../contracts/ListaIntegration.sol";
-import {BnWClisBnb} from "../contracts/BnWClisBnb.sol";
+import {WNomBnb} from "../contracts/WNomBnb.sol";
 import {IHeliosProvider} from "../contracts/interfaces/IHeliosProvider.sol";
 import {IListaIntegration} from "../contracts/interfaces/IListaIntegration.sol";
 import {ICollateral} from "../contracts/interfaces/ICollateral.sol";
@@ -20,7 +20,7 @@ contract ListaIntegrationTest is Test {
     uint256 fork = vm.createFork(RPC_URL, 44606919);
 
     SimpleStaking public simpleStaking;
-    BnWClisBnb public bnwClisBnb;
+    WNomBnb public wnomBnb;
     ListaIntegration public stake_lista_contract;
 
     address owner = vm.addr(1);
@@ -48,8 +48,8 @@ contract ListaIntegrationTest is Test {
         // init simple staking
         simpleStaking = new SimpleStaking();
 
-        // init bnwClisBnb token contract
-        bnwClisBnb = new BnWClisBnb("BnWClisBnb", "BnWClisBnb");
+        // init WNomBnb token contract
+        wnomBnb = new WNomBnb("wnomBnb", "wnomBnb");
 
         // set up proxy
         ProxyAdmin proxyAdmin = new ProxyAdmin(address(1));
@@ -69,15 +69,15 @@ contract ListaIntegrationTest is Test {
                 feeReceiver,
                 5 ether,
                 address(simpleStaking),
-                address(bnwClisBnb)
+                address(wnomBnb)
             )
         );
         stake_lista_contract = ListaIntegration(payable(address(proxy)));
         stake_lista_contract.grantRole(stake_lista_contract.ADMIN_ROLE(), owner);
 
-        bnwClisBnb.grantRole(bnwClisBnb.MINT_BURN_ROLE(), address(stake_lista_contract));
+        wnomBnb.grantRole(wnomBnb.MINT_BURN_ROLE(), address(stake_lista_contract));
 
-        simpleStaking.whitelistToken(address(bnwClisBnb));
+        simpleStaking.whitelistToken(address(wnomBnb));
 
         vm.stopPrank();
 
@@ -905,30 +905,30 @@ contract ListaIntegrationTest is Test {
         // 150 - 200 => user1 = 200 & user2 = 400
     }
 
-    // [OK] Test BnWClisBnb token
-    function testBnWClisBnb() public {
-        assertTrue(simpleStaking.whitelistedTokens(address(bnwClisBnb)));
+    // [OK] Test WNomBnb token
+    function testWNomBnb() public {
+        assertTrue(simpleStaking.whitelistedTokens(address(wnomBnb)));
 
         // User stakes
         vm.prank(user1);
         stake_lista_contract.stake{value: 10 ether}();
-        assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
-        assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 10 ether);
-        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 10 ether);
+        assertEq(wnomBnb.balanceOf(address(stake_lista_contract)), 0 ether);
+        assertEq(wnomBnb.balanceOf(address(simpleStaking)), 10 ether);
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(wnomBnb)), 10 ether);
 
         // User unstakes 50%
         vm.prank(user1);
         stake_lista_contract.unstake(5 ether);
-        assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
-        assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 5 ether);
-        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 5 ether);
+        assertEq(wnomBnb.balanceOf(address(stake_lista_contract)), 0 ether);
+        assertEq(wnomBnb.balanceOf(address(simpleStaking)), 5 ether);
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(wnomBnb)), 5 ether);
 
         // User unstakes liquid 50%
         vm.prank(user1);
         stake_lista_contract.unstakeLiquidBnb(5 ether, slisBnbStrategy);
-        assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
-        assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 0 ether);
-        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 0 ether);
+        assertEq(wnomBnb.balanceOf(address(stake_lista_contract)), 0 ether);
+        assertEq(wnomBnb.balanceOf(address(simpleStaking)), 0 ether);
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(wnomBnb)), 0 ether);
     }
 
     // [OK] Test transferring LRS token
@@ -941,9 +941,9 @@ contract ListaIntegrationTest is Test {
         // User stakes
         vm.prank(user1);
         stake_lista_contract.stake{value: 10 ether}();
-        assertEq(bnwClisBnb.balanceOf(address(stake_lista_contract)), 0 ether);
-        assertEq(bnwClisBnb.balanceOf(address(simpleStaking)), 10 ether);
-        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(bnwClisBnb)), 10 ether);
+        assertEq(wnomBnb.balanceOf(address(stake_lista_contract)), 0 ether);
+        assertEq(wnomBnb.balanceOf(address(simpleStaking)), 10 ether);
+        assertEq(simpleStaking.stakes(address(stake_lista_contract), address(wnomBnb)), 10 ether);
         assertEq(stake_lista_contract.balanceOf(user1), 10 ether);
 
         vm.roll(block.number + 100);

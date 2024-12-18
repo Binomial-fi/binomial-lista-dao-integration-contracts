@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IListaIntegration} from "./interfaces/IListaIntegration.sol";
 import {IHeliosProvider} from "./interfaces/IHeliosProvider.sol";
 import {TransferHelper} from "./libs/TransferHelper.sol";
-import {IBnWClisBnb} from "./interfaces/IBnWClisBnb.sol";
+import {IWNomBnb} from "./interfaces/IWNomBnb.sol";
 import {ISimpleStaking} from "./simple-staking/interfaces/ISimpleStaking.sol";
 
 contract ListaIntegration is
@@ -40,9 +40,6 @@ contract ListaIntegration is
     // Distributions
     IListaIntegration.Distribution[] public distributions;
 
-    // BnWClisBnb
-    // BnWClisBnb private bnwClisBnb = BnWClisBnb("BnWClisBnb", "BnWClisBnb");
-
     function initialize(
         string memory _tokenName,
         string memory _tokenSymbol,
@@ -51,14 +48,14 @@ contract ListaIntegration is
         address _feeReceiver,
         uint256 _feePerc,
         address _simpleStaking,
-        address _bnWClisBnb
+        address _wnomBnb
     ) public initializer {
         __ERC20_init(_tokenName, _tokenSymbol);
 
         HELIOS_PROVIDER = _heliosProvider;
         PROVIDE_DELEGATE_TO = _delegateTo;
         SIMPLE_STAKING = _simpleStaking;
-        BN_W_CLIS_BNB = _bnWClisBnb;
+        BN_W_CLIS_BNB = _wnomBnb;
 
         FEE_RECEIVER = _feeReceiver;
         FEE_PERC = _feePerc;
@@ -88,8 +85,8 @@ contract ListaIntegration is
         // Mint LRS to user
         _mint(msg.sender, msg.value);
 
-        // Mint BnWClisBnb and stake it in simple staking
-        IBnWClisBnb(BN_W_CLIS_BNB).mint(address(this), msg.value);
+        // Mint WNomBnb and stake it in simple staking
+        IWNomBnb(BN_W_CLIS_BNB).mint(address(this), msg.value);
         ISimpleStaking(SIMPLE_STAKING).stake(BN_W_CLIS_BNB, msg.value);
 
         // Emit event
@@ -111,9 +108,9 @@ contract ListaIntegration is
         // Burn LRS
         _burn(msg.sender, _amount);
 
-        // Unstake BnWClisBnb and burn it
+        // Unstake WNomBnb and burn it
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
-        IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
+        IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
         emit IListaIntegration.Unstake(msg.sender, address(0), _amount, block.timestamp);
     }
@@ -128,9 +125,9 @@ contract ListaIntegration is
         // Burn LRS
         _burn(msg.sender, _amount);
 
-        // Unstake BnWClisBnb and burn it
+        // Unstake WNomBnb and burn it
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
-        IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
+        IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
         emit IListaIntegration.Unstake(msg.sender, _asset, _amount, block.timestamp);
     }
