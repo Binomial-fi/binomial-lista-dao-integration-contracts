@@ -70,7 +70,8 @@ contract ListaIntegration is
         distributions.push(initialDistribution);
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        IERC20(BN_W_CLIS_BNB).approve(SIMPLE_STAKING, type(uint256).max);
+        bool approveSuccess = IERC20(BN_W_CLIS_BNB).approve(SIMPLE_STAKING, type(uint256).max);
+        if (!approveSuccess) revert ApproveFailed();
     }
 
     receive() external payable {}

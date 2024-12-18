@@ -5,6 +5,7 @@ interface IListaIntegration {
     error ClaimFailed();
     error InvalidPercentage();
     error ProvidedIndexNotCorrect();
+    error ApproveFailed();
 
     event Stake(address indexed staker, address indexed token, uint256 amount, uint256 timestamp);
     event Unstake(address indexed staker, address indexed token, uint256 amount, uint256 timestamp);
