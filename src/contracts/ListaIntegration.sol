@@ -115,7 +115,7 @@ contract ListaIntegration is
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
         IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, _amount, address(0), block.timestamp);
+        emit IListaIntegration.Unstake(msg.sender, address(0), _amount, block.timestamp);
     }
 
     function unstakeLiquidBnb(uint256 _amount, address _asset) public nonReentrant {
@@ -132,7 +132,7 @@ contract ListaIntegration is
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
         IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, _amount, _asset, block.timestamp);
+        emit IListaIntegration.Unstake(msg.sender, _asset, _amount, block.timestamp);
     }
 
     // Claim rewards

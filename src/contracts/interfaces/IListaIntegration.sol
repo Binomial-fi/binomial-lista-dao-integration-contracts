@@ -23,6 +23,7 @@ interface IListaIntegration {
     }
 
     // Public functions
+    function ADMIN_ROLE() external view returns (bytes32);
     function stake() external payable;
     function unstake(uint256 _amount) external;
     function unstakeLiquidBnb(uint256 _amount, address _asset) external;
