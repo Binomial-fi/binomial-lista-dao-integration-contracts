@@ -92,20 +92,20 @@ contract ListaIntegration is
         _updateCurrentRatio(msg.sender);
 
         // Provide to HeliosProviderV2
-        IHeliosProvider(HELIOS_PROVIDER).provide{value: msg.value}(PROVIDE_DELEGATE_TO);
+        uint256 provideAmount = IHeliosProvider(HELIOS_PROVIDER).provide{value: msg.value}(PROVIDE_DELEGATE_TO);
 
         // Mint LRS to user
-        _mint(msg.sender, msg.value);
+        _mint(msg.sender, provideAmount);
 
         // Mint WNomBnb and stake it in simple staking
-        IWNomBnb(BN_W_CLIS_BNB).mint(address(this), msg.value);
-        ISimpleStaking(SIMPLE_STAKING).stake(BN_W_CLIS_BNB, msg.value);
+        IWNomBnb(BN_W_CLIS_BNB).mint(address(this), provideAmount);
+        ISimpleStaking(SIMPLE_STAKING).stake(BN_W_CLIS_BNB, provideAmount);
 
         // Emit event
         emit IListaIntegration.Stake(
             msg.sender,
             address(0), // Native currency
-            msg.value,
+            provideAmount,
             block.timestamp
         );
     }
