@@ -58,10 +58,7 @@ contract ListaIntegration is
         BN_W_CLIS_BNB = _wnomBnb;
 
         FEE_RECEIVER = _feeReceiver;
-        emit FeeReceiverChanged(address(0), FEE_RECEIVER);
-
         FEE_PERC = _feePerc;
-        emit FeePercentageChanged(0, FEE_PERC);
 
         IListaIntegration.Distribution memory initialDistribution = IListaIntegration.Distribution({
             start: block.number,
@@ -75,6 +72,9 @@ contract ListaIntegration is
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         bool approveSuccess = IERC20(BN_W_CLIS_BNB).approve(SIMPLE_STAKING, type(uint256).max);
         if (!approveSuccess) revert ApproveFailed();
+
+        emit FeeReceiverChanged(address(0), FEE_RECEIVER);
+        emit FeePercentageChanged(0, FEE_PERC);
     }
 
     receive() external payable {}
@@ -97,8 +97,9 @@ contract ListaIntegration is
         emit IListaIntegration.Stake(
             msg.sender,
             address(0), // Native currency
-            provideAmount,
-            block.timestamp
+            msg.value,
+            block.timestamp,
+            provideAmount
         );
     }
 
@@ -107,16 +108,16 @@ contract ListaIntegration is
         _updateCurrentRatio(msg.sender);
 
         // Release from HeliosProviderV2
-        IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
+        uint256 releaseAmount = IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
 
         // Burn LRS
         _burn(msg.sender, _amount);
 
         // Unstake WNomBnb and burn it
-        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
+        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, releaseAmount);
         IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, address(0), _amount, block.timestamp);
+        emit IListaIntegration.Unstake(msg.sender, address(0), _amount, block.timestamp, releaseAmount);
     }
 
     function unstakeLiquidBnb(uint256 _amount, address _asset) public nonReentrant {
@@ -124,16 +125,16 @@ contract ListaIntegration is
         _updateCurrentRatio(msg.sender);
 
         // Release from HeliosProviderV2
-        IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
+        uint256 releaseAmount = IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
 
         // Burn LRS
         _burn(msg.sender, _amount);
 
         // Unstake WNomBnb and burn it
-        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
+        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, releaseAmount);
         IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, _asset, _amount, block.timestamp);
+        emit IListaIntegration.Unstake(msg.sender, _asset, _amount, block.timestamp, releaseAmount);
     }
 
     // Claim rewards

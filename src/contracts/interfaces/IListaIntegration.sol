@@ -8,8 +8,12 @@ interface IListaIntegration {
     error ApproveFailed();
     error NoZeroAddress();
 
-    event Stake(address indexed staker, address indexed token, uint256 amount, uint256 timestamp);
-    event Unstake(address indexed staker, address indexed token, uint256 amount, uint256 timestamp);
+    event Stake(
+        address indexed staker, address indexed token, uint256 amount, uint256 timestamp, uint256 provideAmount
+    );
+    event Unstake(
+        address indexed staker, address indexed token, uint256 amount, uint256 timestamp, uint256 releaseAmount
+    );
     event ClaimedAdminFees(address _receiver, uint256 _amount);
     event ClaimedRewards(address _account, uint256 _rewards, uint256 _distIndex);
     event NewDistribution(uint256 _distributionId, uint256 _startBlock);
