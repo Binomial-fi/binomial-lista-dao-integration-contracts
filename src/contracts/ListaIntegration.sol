@@ -83,15 +83,23 @@ contract ListaIntegration is
         commitUser(msg.sender, distributions.length - 1);
         _updateCurrentRatio(msg.sender);
 
+        IHeliosProvider.Delegation memory delegatedAmountBefore =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
+
         // Provide to HeliosProviderV2
-        uint256 provideAmount = IHeliosProvider(HELIOS_PROVIDER).provide{value: msg.value}(PROVIDE_DELEGATE_TO);
+        IHeliosProvider(HELIOS_PROVIDER).provide{value: msg.value}(PROVIDE_DELEGATE_TO);
+
+        IHeliosProvider.Delegation memory delegatedAmountAfter =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
+
+        uint256 providedAmount = delegatedAmountAfter.amount - delegatedAmountBefore.amount;
 
         // Mint LRS to user
-        _mint(msg.sender, provideAmount);
+        _mint(msg.sender, providedAmount);
 
         // Mint WNomBnb and stake it in simple staking
-        IWNomBnb(BN_W_CLIS_BNB).mint(address(this), provideAmount);
-        ISimpleStaking(SIMPLE_STAKING).stake(BN_W_CLIS_BNB, provideAmount);
+        IWNomBnb(BN_W_CLIS_BNB).mint(address(this), providedAmount);
+        ISimpleStaking(SIMPLE_STAKING).stake(BN_W_CLIS_BNB, providedAmount);
 
         // Emit event
         emit IListaIntegration.Stake(
@@ -99,7 +107,7 @@ contract ListaIntegration is
             address(0), // Native currency
             msg.value,
             block.timestamp,
-            provideAmount
+            providedAmount
         );
     }
 
@@ -107,34 +115,50 @@ contract ListaIntegration is
         commitUser(msg.sender, distributions.length - 1);
         _updateCurrentRatio(msg.sender);
 
-        // Release from HeliosProviderV2
-        uint256 releaseAmount = IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
+        IHeliosProvider.Delegation memory delegatedAmountBefore =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
 
-        // Burn LRS
+        // Release from HeliosProviderV2
+        IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
+
+        IHeliosProvider.Delegation memory delegatedAmountAfter =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
+
+        uint256 releasedAmount = delegatedAmountBefore.amount - delegatedAmountAfter.amount;
+
+        // Burn LRS - we burn the passed amount
         _burn(msg.sender, _amount);
 
         // Unstake WNomBnb and burn it
-        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, releaseAmount);
+        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
         IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, address(0), _amount, block.timestamp, releaseAmount);
+        emit IListaIntegration.Unstake(msg.sender, address(0), _amount, block.timestamp, releasedAmount);
     }
 
     function unstakeLiquidBnb(uint256 _amount, address _asset) public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
         _updateCurrentRatio(msg.sender);
 
-        // Release from HeliosProviderV2
-        uint256 releaseAmount = IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
+        IHeliosProvider.Delegation memory delegatedAmountBefore =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
 
-        // Burn LRS
+        // Release from HeliosProviderV2
+        IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
+
+        IHeliosProvider.Delegation memory delegatedAmountAfter =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
+
+        uint256 releasedAmount = delegatedAmountBefore.amount - delegatedAmountAfter.amount;
+
+        // Burn LRS - we burn the passed amount
         _burn(msg.sender, _amount);
 
         // Unstake WNomBnb and burn it
-        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, releaseAmount);
+        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
         IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, _asset, _amount, block.timestamp, releaseAmount);
+        emit IListaIntegration.Unstake(msg.sender, _asset, _amount, block.timestamp, releasedAmount);
     }
 
     // Claim rewards
