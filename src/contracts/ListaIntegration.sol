@@ -115,16 +115,8 @@ contract ListaIntegration is
         commitUser(msg.sender, distributions.length - 1);
         _updateCurrentRatio(msg.sender);
 
-        IHeliosProvider.Delegation memory delegatedAmountBefore =
-            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
-
         // Release from HeliosProviderV2
-        IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
-
-        IHeliosProvider.Delegation memory delegatedAmountAfter =
-            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
-
-        uint256 releasedAmount = delegatedAmountBefore.amount - delegatedAmountAfter.amount;
+        uint256 releasedAmount = IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
 
         // Burn LRS - we burn the passed amount
         _burn(msg.sender, _amount);
@@ -139,17 +131,9 @@ contract ListaIntegration is
     function unstakeLiquidBnb(uint256 _amount, address _asset) public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
         _updateCurrentRatio(msg.sender);
-
-        IHeliosProvider.Delegation memory delegatedAmountBefore =
-            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
-
+        
         // Release from HeliosProviderV2
-        IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
-
-        IHeliosProvider.Delegation memory delegatedAmountAfter =
-            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
-
-        uint256 releasedAmount = delegatedAmountBefore.amount - delegatedAmountAfter.amount;
+        uint256 releasedAmount = IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
 
         // Burn LRS - we burn the passed amount
         _burn(msg.sender, _amount);
