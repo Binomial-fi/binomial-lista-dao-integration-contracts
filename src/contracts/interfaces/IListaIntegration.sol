@@ -5,9 +5,15 @@ interface IListaIntegration {
     error ClaimFailed();
     error InvalidPercentage();
     error ProvidedIndexNotCorrect();
+    error ApproveFailed();
+    error NoZeroAddress();
 
-    event Stake(address _sender, address _token, uint256 _amount, uint256 _blockTimestamp);
-    event Unstake(address _sender, uint256 _amount, address _token);
+    event Stake(
+        address indexed staker, address indexed token, uint256 amount, uint256 timestamp, uint256 provideAmount
+    );
+    event Unstake(
+        address indexed staker, address indexed token, uint256 amount, uint256 timestamp, uint256 releaseAmount
+    );
     event ClaimedAdminFees(address _receiver, uint256 _amount);
     event ClaimedRewards(address _account, uint256 _rewards, uint256 _distIndex);
     event NewDistribution(uint256 _distributionId, uint256 _startBlock);
@@ -23,6 +29,7 @@ interface IListaIntegration {
     }
 
     // Public functions
+    function ADMIN_ROLE() external view returns (bytes32);
     function stake() external payable;
     function unstake(uint256 _amount) external;
     function unstakeLiquidBnb(uint256 _amount, address _asset) external;

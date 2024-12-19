@@ -10,9 +10,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IListaIntegration} from "./interfaces/IListaIntegration.sol";
 import {IHeliosProvider} from "./interfaces/IHeliosProvider.sol";
 import {TransferHelper} from "./libs/TransferHelper.sol";
-import {IBnWClisBnb} from "./interfaces/IBnWClisBnb.sol";
+import {IWNomBnb} from "./interfaces/IWNomBnb.sol";
 import {ISimpleStaking} from "./simple-staking/interfaces/ISimpleStaking.sol";
-import {Test, console} from "forge-std/Test.sol";
 
 contract ListaIntegration is
     IListaIntegration,
@@ -35,15 +34,11 @@ contract ListaIntegration is
     // Users
     mapping(uint256 => mapping(address => uint256)) public userRatio;
     mapping(address => uint256) public userRewards;
-    mapping(address => uint256) public userBalances;
     mapping(address => uint256) public userLastDist;
     mapping(address => uint256) public userLastInteraction;
 
     // Distributions
     IListaIntegration.Distribution[] public distributions;
-
-    // BnWClisBnb
-    // BnWClisBnb private bnwClisBnb = BnWClisBnb("BnWClisBnb", "BnWClisBnb");
 
     function initialize(
         string memory _tokenName,
@@ -53,14 +48,14 @@ contract ListaIntegration is
         address _feeReceiver,
         uint256 _feePerc,
         address _simpleStaking,
-        address _bnWClisBnb
+        address _wnomBnb
     ) public initializer {
         __ERC20_init(_tokenName, _tokenSymbol);
 
         HELIOS_PROVIDER = _heliosProvider;
         PROVIDE_DELEGATE_TO = _delegateTo;
         SIMPLE_STAKING = _simpleStaking;
-        BN_W_CLIS_BNB = _bnWClisBnb;
+        BN_W_CLIS_BNB = _wnomBnb;
 
         FEE_RECEIVER = _feeReceiver;
         FEE_PERC = _feePerc;
@@ -75,78 +70,100 @@ contract ListaIntegration is
         distributions.push(initialDistribution);
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        IERC20(BN_W_CLIS_BNB).approve(SIMPLE_STAKING, type(uint256).max);
+        bool approveSuccess = IERC20(BN_W_CLIS_BNB).approve(SIMPLE_STAKING, type(uint256).max);
+        if (!approveSuccess) revert ApproveFailed();
+
+        emit FeeReceiverChanged(address(0), FEE_RECEIVER);
+        emit FeePercentageChanged(0, FEE_PERC);
     }
 
     receive() external payable {}
 
     function stake() public payable nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
-        _updateCurrentRatio();
+        _updateCurrentRatio(msg.sender);
+
+        IHeliosProvider.Delegation memory delegatedAmountBefore =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
 
         // Provide to HeliosProviderV2
         IHeliosProvider(HELIOS_PROVIDER).provide{value: msg.value}(PROVIDE_DELEGATE_TO);
 
-        userBalances[msg.sender] += msg.value;
+        IHeliosProvider.Delegation memory delegatedAmountAfter =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
+
+        uint256 providedAmount = delegatedAmountAfter.amount - delegatedAmountBefore.amount;
 
         // Mint LRS to user
-        _mint(msg.sender, msg.value);
+        _mint(msg.sender, providedAmount);
 
-        // Mint BnWClisBnb and stake it in simple staking
-        IBnWClisBnb(BN_W_CLIS_BNB).mint(address(this), msg.value);
-        ISimpleStaking(SIMPLE_STAKING).stake(BN_W_CLIS_BNB, msg.value);
+        // Mint WNomBnb and stake it in simple staking
+        IWNomBnb(BN_W_CLIS_BNB).mint(address(this), providedAmount);
+        ISimpleStaking(SIMPLE_STAKING).stake(BN_W_CLIS_BNB, providedAmount);
 
         // Emit event
         emit IListaIntegration.Stake(
             msg.sender,
             address(0), // Native currency
             msg.value,
-            block.timestamp
+            block.timestamp,
+            providedAmount
         );
     }
 
     function unstake(uint256 _amount) public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
-        _updateCurrentRatio();
+        _updateCurrentRatio(msg.sender);
+
+        IHeliosProvider.Delegation memory delegatedAmountBefore =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
 
         // Release from HeliosProviderV2
         IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
 
-        userBalances[msg.sender] -= _amount;
+        IHeliosProvider.Delegation memory delegatedAmountAfter =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
 
-        // Burn LRS
+        uint256 releasedAmount = delegatedAmountBefore.amount - delegatedAmountAfter.amount;
+
+        // Burn LRS - we burn the passed amount
         _burn(msg.sender, _amount);
 
-        // Unstake BnWClisBnb and burn it
+        // Unstake WNomBnb and burn it
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
-        IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
+        IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, _amount, address(0));
+        emit IListaIntegration.Unstake(msg.sender, address(0), _amount, block.timestamp, releasedAmount);
     }
 
     function unstakeLiquidBnb(uint256 _amount, address _asset) public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
-        _updateCurrentRatio();
+        _updateCurrentRatio(msg.sender);
+
+        IHeliosProvider.Delegation memory delegatedAmountBefore =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
 
         // Release from HeliosProviderV2
         IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
 
-        userBalances[msg.sender] -= _amount;
+        IHeliosProvider.Delegation memory delegatedAmountAfter =
+            IHeliosProvider(HELIOS_PROVIDER)._delegation(address(this));
 
-        // Burn LRS
+        uint256 releasedAmount = delegatedAmountBefore.amount - delegatedAmountAfter.amount;
+
+        // Burn LRS - we burn the passed amount
         _burn(msg.sender, _amount);
 
-        // Unstake BnWClisBnb and burn it
+        // Unstake WNomBnb and burn it
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
-        IBnWClisBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
+        IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, _amount, _asset);
+        emit IListaIntegration.Unstake(msg.sender, _asset, _amount, block.timestamp, releasedAmount);
     }
 
     // Claim rewards
     function claimRewards() public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
-
         uint256 rewardsToClaim = userRewards[msg.sender];
         if (rewardsToClaim == 0) revert IListaIntegration.ClaimFailed();
 
@@ -167,8 +184,8 @@ contract ListaIntegration is
         for (uint256 distIndex = userLastDist[_account]; distIndex < _distIndex;) {
             IListaIntegration.Distribution storage targetDist = distributions[distIndex];
 
-            userRatio[distIndex][_account] = (targetDist.end - userLastInteraction[_account]) * userBalances[_account]
-                + userRatio[distIndex][_account];
+            userRatio[distIndex][_account] = (targetDist.end - userLastInteraction[_account])
+                * super.balanceOf(_account) + userRatio[distIndex][_account];
             userLastInteraction[_account] = targetDist.end;
             userRewards[_account] += (userRatio[distIndex][_account] * targetDist.rewards) / targetDist.capitalLastRatio;
             unchecked {
@@ -180,25 +197,25 @@ contract ListaIntegration is
     }
 
     function transferFrom(address _from, address _to, uint256 _value) public override returns (bool) {
-        super.transferFrom(_from, _to, _value);
+        commitUser(_from, distributions.length - 1);
+        _updateCurrentRatio(_from);
 
-        userBalances[_from] -= _value;
-        userBalances[_to] += _value;
+        commitUser(_to, distributions.length - 1);
+        _updateCurrentRatio(_to);
 
+        super.transfer(_to, _value);
         return true;
     }
 
     function transfer(address _to, uint256 _value) public override returns (bool) {
+        commitUser(_to, distributions.length - 1);
+        _updateCurrentRatio(_to);
+
+        commitUser(msg.sender, distributions.length - 1);
+        _updateCurrentRatio(msg.sender);
+
         super.transfer(_to, _value);
-
-        userBalances[msg.sender] -= _value;
-        userBalances[_to] += _value;
-        
         return true;
-    }
-
-    function decimals() public pure override returns (uint8) {
-        return 8;
     }
 
     // ================== A D M I N ================== //
@@ -255,7 +272,7 @@ contract ListaIntegration is
     }
 
     // ================== I N T E R N A L ================== //
-    function _updateCurrentRatio() internal {
+    function _updateCurrentRatio(address _account) internal {
         uint256 distributionsLength = distributions.length - 1;
 
         // Update capital ratio
@@ -264,9 +281,8 @@ contract ListaIntegration is
             (block.number - targetDist.lastInteraction) * totalSupply() + targetDist.capitalLastRatio;
         targetDist.lastInteraction = block.number;
 
-        // Update user's stake
-        userRatio[distributionsLength][msg.sender] = (block.number - userLastInteraction[msg.sender])
-            * userBalances[msg.sender] + userRatio[distributionsLength][msg.sender];
-        userLastInteraction[msg.sender] = block.number;
+        userRatio[distributionsLength][_account] = (block.number - userLastInteraction[_account])
+            * super.balanceOf(_account) + userRatio[distributionsLength][_account];
+        userLastInteraction[_account] = block.number;
     }
 }
