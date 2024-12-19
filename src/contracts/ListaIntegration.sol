@@ -50,14 +50,6 @@ contract ListaIntegration is
         address _simpleStaking,
         address _wnomBnb
     ) public initializer {
-        address[5] memory addresses = [_heliosProvider, _delegateTo, _feeReceiver, _simpleStaking, _wnomBnb];
-        for (uint256 i = 0; i < addresses.length;) {
-            _checkZeroAddress(addresses[i]);
-            unchecked {
-                i++;
-            }
-        }
-
         __ERC20_init(_tokenName, _tokenSymbol);
 
         HELIOS_PROVIDER = _heliosProvider;
@@ -267,11 +259,5 @@ contract ListaIntegration is
         userRatio[distributionsLength][_account] = (block.number - userLastInteraction[_account])
             * super.balanceOf(_account) + userRatio[distributionsLength][_account];
         userLastInteraction[_account] = block.number;
-    }
-
-    function _checkZeroAddress(address _address) internal pure {
-        if (_address == address(0)) {
-            revert IListaIntegration.NoZeroAddress();
-        }
     }
 }
