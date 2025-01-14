@@ -202,7 +202,7 @@ contract ListaIntegration is
         return true;
     }
 
-    function getCurrentDistributionId() public view returns (uint256) {
+    function getDistId() public view returns (uint256) {
         return distributions.length - 1;
     }
 
