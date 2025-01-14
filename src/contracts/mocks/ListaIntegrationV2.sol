@@ -7,13 +7,13 @@ import "@openzeppelin-upgradable/utils/ReentrancyGuardUpgradeable.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IListaIntegration} from "./interfaces/IListaIntegration.sol";
-import {IHeliosProvider} from "./interfaces/IHeliosProvider.sol";
-import {TransferHelper} from "./libs/TransferHelper.sol";
-import {IWNomBnb} from "./interfaces/IWNomBnb.sol";
-import {ISimpleStaking} from "./simple-staking/interfaces/ISimpleStaking.sol";
+import {IListaIntegration} from "../interfaces/IListaIntegration.sol";
+import {IHeliosProvider} from "../interfaces/IHeliosProvider.sol";
+import {TransferHelper} from "../libs/TransferHelper.sol";
+import {IWNomBnb} from "../interfaces/IWNomBnb.sol";
+import {ISimpleStaking} from "../simple-staking/interfaces/ISimpleStaking.sol";
 
-contract ListaIntegration is
+contract ListaIntegrationV2 is
     IListaIntegration,
     ERC20Upgradeable,
     ReentrancyGuardUpgradeable,
@@ -204,6 +204,10 @@ contract ListaIntegration is
 
     function getCurrentDistributionId() public view returns (uint256) {
         return distributions.length - 1;
+    }
+
+    function newFunction() public pure returns (string memory) {
+        return "new function";
     }
 
     // ================== A D M I N ================== //
