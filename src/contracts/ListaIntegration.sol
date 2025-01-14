@@ -161,7 +161,7 @@ contract ListaIntegration is
 
     // Sync rewards for use from userLastDist[_account] until _distIndex
     function commitUser(address _account, uint256 _distIndex) public {
-        if (_distIndex > distributions.length - 1) {
+        if (_distIndex > distributions.length - 1 || _distIndex < userLastDist[_account]) {
             revert ProvidedIndexNotCorrect();
         }
 
@@ -200,6 +200,10 @@ contract ListaIntegration is
 
         super.transfer(_to, _value);
         return true;
+    }
+
+    function getCurrentDistributionId() public view returns (uint256) {
+        return distributions.length - 1;
     }
 
     // ================== A D M I N ================== //
