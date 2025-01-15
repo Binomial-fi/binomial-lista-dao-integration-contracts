@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin-upgradable/access/AccessControlUpgradeable.sol";
 
 import {ListaIntegration} from "../src/contracts/ListaIntegration.sol";
@@ -20,12 +19,11 @@ contract ListaIntegrationDeployScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         WNomBnb wnomBnb = new WNomBnb("wnomBNB", "wnomBNB");
-        ProxyAdmin proxyAdmin = new ProxyAdmin(owner);
         ListaIntegration stakeListaImplementation = new ListaIntegration();
 
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             address(stakeListaImplementation),
-            address(proxyAdmin),
+            owner,
             abi.encodeWithSelector(
                 ListaIntegration(stakeListaImplementation).initialize.selector,
                 "nomBNB",

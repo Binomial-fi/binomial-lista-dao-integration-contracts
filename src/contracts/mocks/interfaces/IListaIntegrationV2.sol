@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-interface IListaIntegration {
+interface IListaIntegrationV2 {
     error ClaimFailed();
     error InvalidPercentage();
     error ProvidedIndexNotCorrect();
@@ -35,7 +35,7 @@ interface IListaIntegration {
     function unstakeLiquidBnb(uint256 _amount, address _asset) external;
     function claimRewards() external;
     function commitUser(address _account, uint256 _distIndex) external;
-    function getDistId() external view returns (uint256);
+    function newFunction() external returns (string memory);
 
     // Admin functions
     function createDistribution() external;

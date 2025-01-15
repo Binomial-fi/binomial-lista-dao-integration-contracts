@@ -2,8 +2,10 @@
 pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {
+    TransparentUpgradeableProxy,
+    ITransparentUpgradeableProxy
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import {ListaIntegration} from "../contracts/ListaIntegration.sol";
 import {WNomBnb} from "../contracts/WNomBnb.sol";
@@ -11,6 +13,10 @@ import {IHeliosProvider} from "../contracts/interfaces/IHeliosProvider.sol";
 import {IListaIntegration} from "../contracts/interfaces/IListaIntegration.sol";
 import {ICollateral} from "../contracts/interfaces/ICollateral.sol";
 import {SimpleStaking} from "../contracts/simple-staking/SimpleStaking.sol";
+
+import {ListaIntegrationV2} from "../contracts/mocks/ListaIntegrationV2.sol";
+import {IListaIntegrationV2} from "../contracts/mocks/interfaces/IListaIntegrationV2.sol";
+
 import {Test, console, stdStorage, StdStorage} from "forge-std/Test.sol";
 
 contract ListaIntegrationTest is Test {
@@ -22,8 +28,9 @@ contract ListaIntegrationTest is Test {
     SimpleStaking public simpleStaking;
     WNomBnb public wnomBnb;
     ListaIntegration public stake_lista_contract;
+    TransparentUpgradeableProxy public proxy;
 
-    address owner = vm.addr(1);
+    address owner = address(1);
     address user1 = vm.addr(2);
     address user2 = vm.addr(3);
 
@@ -51,15 +58,12 @@ contract ListaIntegrationTest is Test {
         // init WNomBnb token contract
         wnomBnb = new WNomBnb("wnomBnb", "wnomBnb");
 
-        // set up proxy
-        ProxyAdmin proxyAdmin = new ProxyAdmin(address(1));
-
         // set up stake lista impl
         ListaIntegration stakeListaImplementation = new ListaIntegration();
 
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+        proxy = new TransparentUpgradeableProxy(
             address(stakeListaImplementation),
-            address(proxyAdmin),
+            owner,
             abi.encodeWithSelector(
                 ListaIntegration(stakeListaImplementation).initialize.selector,
                 "LRS",
@@ -975,5 +979,72 @@ contract ListaIntegrationTest is Test {
         vm.prank(user2);
         stake_lista_contract.claimRewards();
         console.log("user2 balance after claim: ", user2.balance);
+    }
+
+    // [OK] Test upgradeability
+    function testUpgradeability() public {
+        vm.prank(user1);
+        stake_lista_contract.stake{value: 1 ether}();
+
+        // Upgrade to StakeListaV2
+        address proxyAdmin = 0xfE2f43e66C38ab1d9d3026300698fb2E4a39a6b6;
+        vm.startPrank(proxyAdmin);
+
+        ListaIntegrationV2 stakeListaImplementationV2 = new ListaIntegrationV2();
+        bytes memory data = bytes("");
+        ITransparentUpgradeableProxy(address(stake_lista_contract)).upgradeToAndCall(
+            address(stakeListaImplementationV2), data
+        );
+
+        vm.stopPrank();
+
+        // Verify new func exists
+        vm.prank(user1);
+        string memory result = IListaIntegrationV2(address(stake_lista_contract)).newFunction();
+        assertEq(result, "new function");
+
+        // Verify user1 stake
+        assertEq(stake_lista_contract.balanceOf(user1), 1 ether);
+    }
+
+    // [OK] Test getDistId
+    function testGetDistId() public {
+        vm.prank(owner);
+        stake_lista_contract.createDistribution();
+
+        uint256 distId = stake_lista_contract.getDistId();
+        assertEq(distId, 1);
+    }
+
+    // [OK] Test manual commit
+    function testManualCommit() public {
+        vm.deal(rewardsDistributor, 1000 ether);
+
+        vm.prank(user1);
+        stake_lista_contract.stake{value: 1 ether}();
+
+        // send rewards
+        vm.prank(rewardsDistributor);
+        address(stake_lista_contract).call{value: 10 ether}("");
+        vm.roll(block.number + 100);
+
+        // Create 2 more distributions
+        vm.startPrank(owner);
+        stake_lista_contract.createDistribution();
+        vm.roll(block.number + 100);
+        stake_lista_contract.createDistribution();
+        vm.stopPrank();
+
+        assertEq(stake_lista_contract.getDistId(), 2);
+
+        vm.prank(user2);
+        stake_lista_contract.stake{value: 1 ether}();
+
+        vm.assertEq(stake_lista_contract.userLastDist(user1), 0);
+        vm.assertEq(stake_lista_contract.userLastDist(user2), 2);
+
+        // Test manual commint
+        vm.prank(user2);
+        stake_lista_contract.commitUser(user2, 2);
     }
 }

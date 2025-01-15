@@ -7,14 +7,14 @@ import "@openzeppelin-upgradable/utils/ReentrancyGuardUpgradeable.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IListaIntegration} from "./interfaces/IListaIntegration.sol";
-import {IHeliosProvider} from "./interfaces/IHeliosProvider.sol";
-import {TransferHelper} from "./libs/TransferHelper.sol";
-import {IWNomBnb} from "./interfaces/IWNomBnb.sol";
-import {ISimpleStaking} from "./simple-staking/interfaces/ISimpleStaking.sol";
+import {IListaIntegrationV2} from "./interfaces/IListaIntegrationV2.sol";
+import {IHeliosProvider} from "../interfaces/IHeliosProvider.sol";
+import {TransferHelper} from "../libs/TransferHelper.sol";
+import {IWNomBnb} from "../interfaces/IWNomBnb.sol";
+import {ISimpleStaking} from "../simple-staking/interfaces/ISimpleStaking.sol";
 
-contract ListaIntegration is
-    IListaIntegration,
+contract ListaIntegrationV2 is
+    IListaIntegrationV2,
     ERC20Upgradeable,
     ReentrancyGuardUpgradeable,
     AccessControlUpgradeable
@@ -38,7 +38,7 @@ contract ListaIntegration is
     mapping(address => uint256) public userLastInteraction;
 
     // Distributions
-    IListaIntegration.Distribution[] public distributions;
+    IListaIntegrationV2.Distribution[] public distributions;
 
     function initialize(
         string memory _tokenName,
@@ -60,7 +60,7 @@ contract ListaIntegration is
         FEE_RECEIVER = _feeReceiver;
         FEE_PERC = _feePerc;
 
-        IListaIntegration.Distribution memory initialDistribution = IListaIntegration.Distribution({
+        IListaIntegrationV2.Distribution memory initialDistribution = IListaIntegrationV2.Distribution({
             start: block.number,
             end: 0,
             rewards: 0,
@@ -102,7 +102,7 @@ contract ListaIntegration is
         ISimpleStaking(SIMPLE_STAKING).stake(BN_W_CLIS_BNB, providedAmount);
 
         // Emit event
-        emit IListaIntegration.Stake(
+        emit IListaIntegrationV2.Stake(
             msg.sender,
             address(0), // Native currency
             msg.value,
@@ -125,7 +125,7 @@ contract ListaIntegration is
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
         IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, address(0), _amount, block.timestamp, releasedAmount);
+        emit IListaIntegrationV2.Unstake(msg.sender, address(0), _amount, block.timestamp, releasedAmount);
     }
 
     function unstakeLiquidBnb(uint256 _amount, address _asset) public nonReentrant {
@@ -142,21 +142,21 @@ contract ListaIntegration is
         ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
         IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
-        emit IListaIntegration.Unstake(msg.sender, _asset, _amount, block.timestamp, releasedAmount);
+        emit IListaIntegrationV2.Unstake(msg.sender, _asset, _amount, block.timestamp, releasedAmount);
     }
 
     // Claim rewards
     function claimRewards() public nonReentrant {
         commitUser(msg.sender, distributions.length - 1);
         uint256 rewardsToClaim = userRewards[msg.sender];
-        if (rewardsToClaim == 0) revert IListaIntegration.ClaimFailed();
+        if (rewardsToClaim == 0) revert IListaIntegrationV2.ClaimFailed();
 
         totalRewards -= rewardsToClaim;
         userRewards[msg.sender] = 0;
 
         TransferHelper.safeTransferNative(msg.sender, rewardsToClaim);
 
-        emit IListaIntegration.ClaimedRewards(msg.sender, rewardsToClaim, userLastDist[msg.sender]);
+        emit IListaIntegrationV2.ClaimedRewards(msg.sender, rewardsToClaim, userLastDist[msg.sender]);
     }
 
     // Sync rewards for use from userLastDist[_account] until _distIndex
@@ -166,7 +166,7 @@ contract ListaIntegration is
         }
 
         for (uint256 distIndex = userLastDist[_account]; distIndex < _distIndex;) {
-            IListaIntegration.Distribution storage targetDist = distributions[distIndex];
+            IListaIntegrationV2.Distribution storage targetDist = distributions[distIndex];
 
             userRatio[distIndex][_account] = (targetDist.end - userLastInteraction[_account])
                 * super.balanceOf(_account) + userRatio[distIndex][_account];
@@ -202,14 +202,18 @@ contract ListaIntegration is
         return true;
     }
 
-    function getDistId() public view returns (uint256) {
+    function getCurrentDistributionId() public view returns (uint256) {
         return distributions.length - 1;
+    }
+
+    function newFunction() public pure returns (string memory) {
+        return "new function";
     }
 
     // ================== A D M I N ================== //
     function createDistribution() public onlyRole(ADMIN_ROLE) {
         // Update current distribution
-        IListaIntegration.Distribution storage currentDistribution = distributions[distributions.length - 1];
+        IListaIntegrationV2.Distribution storage currentDistribution = distributions[distributions.length - 1];
         uint256 incomingRewards = address(this).balance - (totalFees + totalRewards);
         uint256 incomingFees = (incomingRewards * FEE_PERC) / 1e20;
 
@@ -222,7 +226,7 @@ contract ListaIntegration is
             (block.number - currentDistribution.lastInteraction) * totalSupply() + currentDistribution.capitalLastRatio;
 
         // create new distribution
-        IListaIntegration.Distribution memory newDistribution = IListaIntegration.Distribution({
+        IListaIntegrationV2.Distribution memory newDistribution = IListaIntegrationV2.Distribution({
             start: block.number,
             end: 0,
             rewards: 0,
@@ -239,7 +243,7 @@ contract ListaIntegration is
 
         totalFees = 0;
 
-        emit IListaIntegration.ClaimedAdminFees(FEE_RECEIVER, totalFees);
+        emit IListaIntegrationV2.ClaimedAdminFees(FEE_RECEIVER, totalFees);
     }
 
     function setFeeReceiver(address _newReceiver) public onlyRole(ADMIN_ROLE) {
@@ -264,7 +268,7 @@ contract ListaIntegration is
         uint256 distributionsLength = distributions.length - 1;
 
         // Update capital ratio
-        IListaIntegration.Distribution storage targetDist = distributions[distributionsLength];
+        IListaIntegrationV2.Distribution storage targetDist = distributions[distributionsLength];
         targetDist.capitalLastRatio =
             (block.number - targetDist.lastInteraction) * totalSupply() + targetDist.capitalLastRatio;
         targetDist.lastInteraction = block.number;
