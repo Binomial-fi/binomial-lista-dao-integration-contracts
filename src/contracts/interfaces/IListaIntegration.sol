@@ -7,6 +7,11 @@ interface IListaIntegration {
     error ProvidedIndexNotCorrect();
     error ApproveFailed();
     error NoZeroAddress();
+    error ReleaseAmountZero();
+    error UnstakeAmountMismatch();
+    error InsufficientBalance();
+    error InvalidAsset();
+    error InvalidAmount();
 
     event Stake(
         address indexed staker, address indexed token, uint256 amount, uint256 timestamp, uint256 provideAmount

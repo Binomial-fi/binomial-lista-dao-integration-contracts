@@ -112,35 +112,54 @@ contract ListaIntegration is
     }
 
     function unstake(uint256 _amount) public nonReentrant {
+        if (_amount == 0) revert InvalidAmount();
+        if (_amount > balanceOf(msg.sender)) revert InsufficientBalance();
+
         commitUser(msg.sender, distributions.length - 1);
         _updateCurrentRatio(msg.sender);
 
-        // Release from HeliosProviderV2
-        uint256 releasedAmount = IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
+        // Unstake WNomBnb and burn it
+        uint256 wnomBnbBefore = IERC20(BN_W_CLIS_BNB).balanceOf(address(this));
+        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
+        uint256 wnomBnbAfter = IERC20(BN_W_CLIS_BNB).balanceOf(address(this));
+        if (wnomBnbAfter - wnomBnbBefore != _amount) {
+            revert UnstakeAmountMismatch();
+        }
+        IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
         // Burn LRS - we burn the passed amount
         _burn(msg.sender, _amount);
 
-        // Unstake WNomBnb and burn it
-        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
-        IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
+        // Release from HeliosProviderV2
+        uint256 releasedAmount = IHeliosProvider(HELIOS_PROVIDER).release(msg.sender, _amount);
+        if (releasedAmount == 0) revert ReleaseAmountZero();
 
         emit IListaIntegration.Unstake(msg.sender, address(0), _amount, block.timestamp, releasedAmount);
     }
 
     function unstakeLiquidBnb(uint256 _amount, address _asset) public nonReentrant {
+        if (_amount == 0) revert InvalidAmount();
+        if (_amount > balanceOf(msg.sender)) revert InsufficientBalance();
+        if (_asset == address(0)) revert InvalidAsset();
+
         commitUser(msg.sender, distributions.length - 1);
         _updateCurrentRatio(msg.sender);
 
-        // Release from HeliosProviderV2
-        uint256 releasedAmount = IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
+        // Unstake WNomBnb and burn it
+        uint256 wnomBnbBefore = IERC20(BN_W_CLIS_BNB).balanceOf(address(this));
+        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
+        uint256 wnomBnbAfter = IERC20(BN_W_CLIS_BNB).balanceOf(address(this));
+        if (wnomBnbAfter - wnomBnbBefore != _amount) {
+            revert UnstakeAmountMismatch();
+        }
+        IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
 
         // Burn LRS - we burn the passed amount
         _burn(msg.sender, _amount);
 
-        // Unstake WNomBnb and burn it
-        ISimpleStaking(SIMPLE_STAKING).unstake(BN_W_CLIS_BNB, _amount);
-        IWNomBnb(BN_W_CLIS_BNB).burn(address(this), _amount);
+        // Release from HeliosProviderV2
+        uint256 releasedAmount = IHeliosProvider(HELIOS_PROVIDER).releaseInToken(_asset, msg.sender, _amount);
+        if (releasedAmount == 0) revert ReleaseAmountZero();
 
         emit IListaIntegration.Unstake(msg.sender, _asset, _amount, block.timestamp, releasedAmount);
     }
